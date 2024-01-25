@@ -134,9 +134,9 @@ namespace XmlContentTranslator
             {
                 doc.Load(fileName);
             }
-            catch
+            catch(Exception e)
             {
-                MessageBox.Show("Not a valid xml file: " + fileName);
+                MessageBox.Show("Not a valid xml file: " + fileName+"\r\n"+e.Message + "\r\n" + e.StackTrace);
                 return false;
             }
 
