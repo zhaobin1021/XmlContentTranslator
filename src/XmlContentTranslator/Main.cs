@@ -122,6 +122,8 @@ namespace XmlContentTranslator
                     OpenSecondFile();
                 }
             }
+            comboBoxFrom.Text = "English";
+            comboBoxTo.Text = "Chinese";
         }
 
         private bool OpenFirstFile(string fileName)
@@ -156,11 +158,13 @@ namespace XmlContentTranslator
                         var treeNode = new TreeNode(childNode.Name);
                         treeNode.Tag = childNode;
                         treeView1.Nodes.Add(treeNode);
-                        if (childNode.ChildNodes.Count > 0 && !XmlUtils.IsTextNode(childNode))
+
+                        if (childNode.ChildNodes.Count > 0)
                         {
                             ExpandNode(treeNode, childNode);
                         }
-                        else
+
+                        if (XmlUtils.ContainsText(childNode))
                         {
                             _treeNodesHashtable.Add(treeNode, childNode);
                             AddListViewItem(childNode);
@@ -251,19 +255,18 @@ namespace XmlContentTranslator
 
             TryGetLanguageNameAttribute(doc, comboBoxTo);
 
-            AddAttributes(doc.DocumentElement);
+            //AddAttributes(doc.DocumentElement);
             if (doc.DocumentElement != null)
             {
                 foreach (XmlNode childNode in doc.DocumentElement.ChildNodes)
                 {
-                    if (childNode.ChildNodes.Count > 0 && !XmlUtils.IsTextNode(childNode))
+                    if (childNode.ChildNodes.Count > 0)
                     {
                         ExpandNode(null, childNode);
                     }
-                    else
+                    if (XmlUtils.ContainsText(childNode))
                     {
                         AddListViewItem(childNode);
-                        AddAttributes(doc.DocumentElement);
                     }
                 }
             }
@@ -310,42 +313,48 @@ namespace XmlContentTranslator
 
         private void AddListViewItem(XmlNode node)
         {
+            //第二列原文
             if (listViewLanguageTags.Columns.Count == 2)
             {
-                if (node.NodeType == XmlNodeType.Comment || node.NodeType == XmlNodeType.CDATA)
+                if (node.NodeType == XmlNodeType.Comment || node.NodeType == XmlNodeType.CDATA )
                 {
                     return;
                 }
+                if (checkBox_transAttr.CheckState != CheckState.Checked)
+                {
+                    if (node.NodeType == XmlNodeType.Attribute)
+                    {
+                        return;
+                    }
+                }
 
                 ListViewItem item;
-                if (node.NodeType == XmlNodeType.Attribute)
+                if( node.NodeType == XmlNodeType.Text)
+                {
+                    item = new ListViewItem(node.Name);
+                    item.SubItems.Add(node.InnerText);
+                }else if (node.NodeType == XmlNodeType.Attribute)
                 {
                     item = new ListViewItem("@" + node.Name);
                     item.SubItems.Add(node.InnerText);
                 }
-                else if (XmlUtils.ContainsText(node))
-                {
-                    item = new ListViewItem(node.Name);
-                    item.SubItems.Add(node.InnerXml);
-                }
                 else
                 {
-                    item = new ListViewItem(node.Name);
-                    item.SubItems.Add(node.InnerText);
+                    return;
                 }
-
 
                 item.Tag = node;
                 listViewLanguageTags.Items.Add(item);
                 ListViewItemComparer.NoSortOrder.Add(item, listViewLanguageTags.Items.Count);
 
-                _listViewItemHashtable.Add(XmlUtils.BuildNodePath(node), item); // fails on some attributes!!
+                _listViewItemHashtable.Add(XmlUtils.BuildNodePath(node), item);
             }
+            //第三列译文
             else if (listViewLanguageTags.Columns.Count == 3)
             {
                 if (_listViewItemHashtable[XmlUtils.BuildNodePath(node)] is ListViewItem item && item.SubItems.Count < 4096)
                 {
-                    item.SubItems.Add(XmlUtils.ContainsText(node) ? node.InnerXml : node.InnerText);
+                    item.SubItems.Add(node.InnerText);
                 }
             }
         }
@@ -373,6 +382,7 @@ namespace XmlContentTranslator
                 {
                     var treeNode = new TreeNode(childNode.Name);
                     treeNode.Tag = childNode;
+                    
                     if (parentNode == null)
                     {
                         treeView1.Nodes.Add(treeNode);
@@ -382,15 +392,13 @@ namespace XmlContentTranslator
                         parentNode.Nodes.Add(treeNode);
                     }
 
+                    _treeNodesHashtable.Add(treeNode, childNode);
+                    AddListViewItem(childNode);
+                    AddAttributes(childNode);
+
                     if (XmlUtils.IsParentElement(childNode))
                     {
                         ExpandNode(treeNode, childNode);
-                    }
-                    else
-                    {
-                        _treeNodesHashtable.Add(treeNode, childNode);
-                        AddListViewItem(childNode);
-                        AddAttributes(childNode);
                     }
                 }
             }
@@ -399,14 +407,12 @@ namespace XmlContentTranslator
                 AddAttributes(node);
                 foreach (XmlNode childNode in node.ChildNodes)
                 {
+                    AddListViewItem(childNode);
+                    AddAttributes(childNode);
+
                     if (XmlUtils.IsParentElement(childNode))
                     {
                         ExpandNode(null, childNode);
-                    }
-                    else
-                    {
-                        AddListViewItem(childNode);
-                        AddAttributes(childNode);
                     }
                 }
             }
@@ -506,57 +512,47 @@ namespace XmlContentTranslator
             {
                 foreach (XmlNode childNode in _originalDocument.DocumentElement.ChildNodes)
                 {
-                    if (childNode.ChildNodes.Count > 0 && !XmlUtils.IsTextNode(childNode))
+                    var item = _listViewItemHashtable[XmlUtils.BuildNodePath(childNode)] as ListViewItem;
+                    if (item != null)
                     {
-                        FillOriginalDocumentExpandNode(childNode);
+                        childNode.InnerText = item.SubItems[2].Text;
                     }
-                    else
-                    {
-                        var item = _listViewItemHashtable[XmlUtils.BuildNodePath(childNode)] as ListViewItem;
-                        if (item != null)
-                        {
-                            childNode.InnerText = item.SubItems[2].Text;
-                        }
-                        FillAttributes(_originalDocument.DocumentElement);
-                    }
+                    FillAttributes(_originalDocument.DocumentElement);
+
+                    FillOriginalDocumentExpandNode(childNode);
                 }
             }
         }
 
+        /// <summary>
+        /// 回填翻译内容
+        /// </summary>
+        /// <param name="node"></param>
         private void FillOriginalDocumentExpandNode(XmlNode node)
         {
             FillAttributes(node);
             foreach (XmlNode childNode in node.ChildNodes)
             {
-                if (childNode.ChildNodes.Count > 0 && !XmlUtils.IsTextNode(childNode))
+                if (_listViewItemHashtable[XmlUtils.BuildNodePath(childNode)] is ListViewItem item)
                 {
-                    FillOriginalDocumentExpandNode(childNode);
-                }
-                else
-                {
-                    if (_listViewItemHashtable[XmlUtils.BuildNodePath(childNode)] is ListViewItem item)
+                    try
                     {
-                        if (XmlUtils.ContainsText(childNode))
-                        {
-                            try
-                            {
-                                childNode.InnerXml = item.SubItems[2].Text;
-                            }
-                            catch
-                            {
-                                childNode.InnerText = item.SubItems[2].Text;
-                            }
-                        }
-                        else
-                        {
-                            childNode.InnerText = item.SubItems[2].Text;
-                        }
+                        childNode.InnerText = item.SubItems[2].Text;
                     }
-                    FillAttributes(childNode);
+                    catch
+                    {
+
+                    }
                 }
+                FillAttributes(childNode);
+                FillOriginalDocumentExpandNode(childNode);
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="node"></param>
         private void FillAttributes(XmlNode node)
         {
             if (node.Attributes == null)
@@ -722,7 +718,7 @@ namespace XmlContentTranslator
             }
             var log = new StringBuilder();
             var lines = translator.Translate(((ComboBoxItem)comboBoxFrom.SelectedItem).Value, ((ComboBoxItem)comboBoxTo.SelectedItem).Value, list, log).ToList();
-            if (listViewLanguageTags.SelectedItems.Count != lines.Count)
+            if (listViewLanguageTags.SelectedItems.Count > lines.Count)
             {
                 MessageBox.Show("Error getting/decoding translation from google!");
                 Cursor = Cursors.Default;

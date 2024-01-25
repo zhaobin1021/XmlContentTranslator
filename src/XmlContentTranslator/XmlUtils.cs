@@ -23,6 +23,16 @@ namespace XmlContentTranslator
             return false;
         }
 
+        public static bool IsOnlyTextNode(XmlNode node)
+        {
+            if (node.ChildNodes.Count == 1 && node.ChildNodes[0].NodeType == XmlNodeType.Text)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         public static bool IsTextNode(XmlNode node)
         {
             if (node.ChildNodes.Count == 1 && node.ChildNodes[0].NodeType == XmlNodeType.Text)
@@ -93,11 +103,10 @@ namespace XmlContentTranslator
                         break;
                     i++;
                 }
-
             }
-            else if (node.NodeType != XmlNodeType.Text)
+            else
             {
-                foreach (var x in node.ParentNode.SelectNodes(node.Name))
+                foreach (var x in node.ParentNode.ChildNodes)
                 {
                     if (x == node)
                         break;
@@ -112,8 +121,7 @@ namespace XmlContentTranslator
 
         public static bool IsParentElement(XmlNode xnode)
         {
-            return xnode.ChildNodes.Count > 0 && !IsTextNode(xnode) &&
-                xnode.NodeType != XmlNodeType.Comment && xnode.NodeType != XmlNodeType.CDATA;
+            return xnode.ChildNodes.Count > 0 && xnode.NodeType != XmlNodeType.Comment && xnode.NodeType != XmlNodeType.CDATA;
         }
     }
 }
