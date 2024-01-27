@@ -52,6 +52,7 @@ namespace XmlContentTranslator
 
             FillComboWithLanguages(comboBoxFrom);
             FillComboWithLanguages(comboBoxTo);
+            comboBox_transForm.Text = "Baidu";
         }
 
         private void listViewLanguageTags_ColumnClick(object sender, ColumnClickEventArgs e)
@@ -134,9 +135,9 @@ namespace XmlContentTranslator
             {
                 doc.Load(fileName);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                MessageBox.Show("Not a valid xml file: " + fileName+"\r\n"+e.Message + "\r\n" + e.StackTrace);
+                MessageBox.Show("Not a valid xml file: " + fileName + "\r\n" + e.Message + "\r\n" + e.StackTrace);
                 return false;
             }
 
@@ -316,7 +317,7 @@ namespace XmlContentTranslator
             //第二列原文
             if (listViewLanguageTags.Columns.Count == 2)
             {
-                if (node.NodeType == XmlNodeType.Comment || node.NodeType == XmlNodeType.CDATA )
+                if (node.NodeType == XmlNodeType.Comment || node.NodeType == XmlNodeType.CDATA)
                 {
                     return;
                 }
@@ -329,11 +330,12 @@ namespace XmlContentTranslator
                 }
 
                 ListViewItem item;
-                if( node.NodeType == XmlNodeType.Text)
+                if (node.NodeType == XmlNodeType.Text)
                 {
                     item = new ListViewItem(node.Name);
                     item.SubItems.Add(node.InnerText);
-                }else if (node.NodeType == XmlNodeType.Attribute)
+                }
+                else if (node.NodeType == XmlNodeType.Attribute)
                 {
                     item = new ListViewItem("@" + node.Name);
                     item.SubItems.Add(node.InnerText);
@@ -382,7 +384,7 @@ namespace XmlContentTranslator
                 {
                     var treeNode = new TreeNode(childNode.Name);
                     treeNode.Tag = childNode;
-                    
+
                     if (parentNode == null)
                     {
                         treeView1.Nodes.Add(treeNode);
@@ -684,7 +686,7 @@ namespace XmlContentTranslator
 
             if (comboBoxFrom.SelectedItem == null || comboBoxTo.SelectedItem == null)
             {
-                MessageBox.Show("From/to language not selected");
+                MessageBox.Show("请设置翻译的语言");
                 return;
             }
 
@@ -693,10 +695,9 @@ namespace XmlContentTranslator
             string oldText = string.Empty;
             string newText = string.Empty;
 
-            toolStripStatusLabel1.Text = "Translating via Google Translate. Please wait...";
+            toolStripStatusLabel1.Text = "翻译中. Please wait...";
             Refresh();
 
-            var translator = new GoogleTranslator1();
             Cursor = Cursors.WaitCursor;
             var sb = new StringBuilder();
             var res = new StringBuilder();
@@ -717,10 +718,22 @@ namespace XmlContentTranslator
                 sb.Append("== " + oldText + " ");
             }
             var log = new StringBuilder();
-            var lines = translator.Translate(((ComboBoxItem)comboBoxFrom.SelectedItem).Value, ((ComboBoxItem)comboBoxTo.SelectedItem).Value, list, log).ToList();
+
+            var lines = new List<string>();
+            if (comboBox_transForm.Text == "Google")
+            {
+                var translator = new GoogleTranslator1();
+                lines = translator.Translate(((ComboBoxItem)comboBoxFrom.SelectedItem).Value, ((ComboBoxItem)comboBoxTo.SelectedItem).Value, list, log).ToList();
+            }
+            else if (comboBox_transForm.Text == "Baidu")
+            {
+                var translator = new BaiduTrans();
+                lines = translator.Trans(list);
+            }
+
             if (listViewLanguageTags.SelectedItems.Count > lines.Count)
             {
-                MessageBox.Show("Error getting/decoding translation from google!");
+                MessageBox.Show("Error getting/decoding translation from " + comboBox_transForm.Text + "!");
                 Cursor = Cursors.Default;
                 return;
             }
@@ -1023,32 +1036,6 @@ namespace XmlContentTranslator
                     }
                 }
             }
-        }
-
-        private void toolStripMenuItem2_Click(object sender, EventArgs e)
-        {
-            openFileDialog1.FileName = string.Empty;
-            openFileDialog1.DefaultExt = ".xml";
-            openFileDialog1.Filter = "Xml files|*.xml" + "|All files|*.*";
-            openFileDialog1.Title = "Open English translation base file";
-
-            var doc = new XmlDocument();
-            try
-            {
-                const string url = "https://raw.githubusercontent.com/SubtitleEdit/subtitleedit/main/LanguageBaseEnglish.xml";
-                var wc = new WebClient();
-                var xml = wc.DownloadString(url);
-                MakeNew();
-                doc.LoadXml(xml);
-                OpenFirstXmlDocument(doc);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error: " + ex.Message);
-                return;
-            }
-
-            OpenSecondFile();
         }
 
         private void findToolStripMenuItem_Click(object sender, EventArgs e)

@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<trans>
+	<baidu>
+		<!--改成您的APP ID-->
+		<key>20240125001950695</key>
+		<!--改成您的密钥-->
+		<secret></secret>
+	</baidu>
+</trans>
