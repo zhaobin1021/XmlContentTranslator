@@ -146,7 +146,7 @@ namespace XmlContentTranslator
 
         private bool OpenFirstXmlDocument(XmlDocument doc)
         {
-            listViewLanguageTags.Columns.Add("Tag", 150);
+            listViewLanguageTags.Columns.Add("节点", 150);
             TryGetLanguageNameAttribute(doc, comboBoxFrom);
 
             AddAttributes(doc.DocumentElement);
@@ -221,8 +221,8 @@ namespace XmlContentTranslator
         private void OpenSecondFile()
         {
             _secondLanguageFileName = string.Empty;
-            Text = "XML Content Translator - New";
-            openFileDialog1.Title = "Open file to translate/correct";
+            Text = "XML翻译 - 新建";
+            openFileDialog1.Title = "打开文件翻译";
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
                 OpenSecondFile(openFileDialog1.FileName);
@@ -240,7 +240,7 @@ namespace XmlContentTranslator
         {
             toolStripStatusLabel1.Text = "Opening " + fileName + "...";
             _secondLanguageFileName = fileName;
-            Text = "XML Content Translator - " + _secondLanguageFileName;
+            Text = "XML翻译 - " + _secondLanguageFileName;
 
             Cursor = Cursors.WaitCursor;
             listViewLanguageTags.BeginUpdate();
@@ -251,7 +251,7 @@ namespace XmlContentTranslator
             }
             catch
             {
-                MessageBox.Show("Not a valid xml file: " + _secondLanguageFileName);
+                MessageBox.Show("不是有效的XML文档: " + _secondLanguageFileName);
             }
 
             TryGetLanguageNameAttribute(doc, comboBoxTo);
@@ -291,10 +291,10 @@ namespace XmlContentTranslator
             }
             else
             {
-                string language = "Language1";
+                string language = "原文";
                 if (cb.Name == "comboBoxTo")
                 {
-                    language = "Language2";
+                    language = "译文";
                 }
                 listViewLanguageTags.Columns.Add(language, 200);
             }
@@ -314,19 +314,16 @@ namespace XmlContentTranslator
 
         private void AddListViewItem(XmlNode node)
         {
+            if (checkBox_transAttr.CheckState != CheckState.Checked && node.NodeType == XmlNodeType.Attribute)
+            {
+                return;
+            }
             //第二列原文
             if (listViewLanguageTags.Columns.Count == 2)
             {
                 if (node.NodeType == XmlNodeType.Comment || node.NodeType == XmlNodeType.CDATA)
                 {
                     return;
-                }
-                if (checkBox_transAttr.CheckState != CheckState.Checked)
-                {
-                    if (node.NodeType == XmlNodeType.Attribute)
-                    {
-                        return;
-                    }
                 }
 
                 ListViewItem item;
@@ -370,7 +367,7 @@ namespace XmlContentTranslator
             listViewLanguageTags.Clear();
 
             _secondLanguageFileName = string.Empty;
-            Text = "XML Content Translator";
+            Text = "XML翻译";
 
             _change = false;
         }
@@ -379,7 +376,6 @@ namespace XmlContentTranslator
         {
             if (listViewLanguageTags.Columns.Count == 2)
             {
-                AddAttributes(node);
                 foreach (XmlNode childNode in node.ChildNodes)
                 {
                     var treeNode = new TreeNode(childNode.Name);
@@ -406,7 +402,6 @@ namespace XmlContentTranslator
             }
             else if (listViewLanguageTags.Columns.Count == 3)
             {
-                AddAttributes(node);
                 foreach (XmlNode childNode in node.ChildNodes)
                 {
                     AddListViewItem(childNode);
@@ -699,8 +694,8 @@ namespace XmlContentTranslator
             Refresh();
 
             Cursor = Cursors.WaitCursor;
-            var sb = new StringBuilder();
-            var res = new StringBuilder();
+            //var sb = new StringBuilder();
+            //var res = new StringBuilder();
             var oldLines = new List<string>();
             var list = new List<string>();
             foreach (ListViewItem item in listViewLanguageTags.SelectedItems)
@@ -708,14 +703,14 @@ namespace XmlContentTranslator
                 oldText = item.SubItems[1].Text;
                 oldText = string.Join(Environment.NewLine, oldText.SplitToLines());
                 oldLines.Add(oldText);
-                var urlEncode = HttpUtility.UrlEncode(sb + newText);
-                if (urlEncode.Length >= 1000)
-                {
-                    res.Append(TranslateTextViaScreenScraping(sb.ToString(), (comboBoxFrom.SelectedItem as ComboBoxItem).Value + "|" + (comboBoxTo.SelectedItem as ComboBoxItem).Value));
-                    sb = new StringBuilder();
-                }
+                //var urlEncode = HttpUtility.UrlEncode(sb + newText);
+                //if (urlEncode.Length >= 1000)
+                //{
+                //    res.Append(TranslateTextViaScreenScraping(sb.ToString(), (comboBoxFrom.SelectedItem as ComboBoxItem).Value + "|" + (comboBoxTo.SelectedItem as ComboBoxItem).Value));
+                //    sb = new StringBuilder();
+                //}
                 list.Add(oldText);
-                sb.Append("== " + oldText + " ");
+                //sb.Append("== " + oldText + " ");
             }
             var log = new StringBuilder();
 
@@ -733,7 +728,7 @@ namespace XmlContentTranslator
 
             if (listViewLanguageTags.SelectedItems.Count > lines.Count)
             {
-                MessageBox.Show("Error getting/decoding translation from " + comboBox_transForm.Text + "!");
+                MessageBox.Show("翻译失败 " + comboBox_transForm.Text + "!");
                 Cursor = Cursors.Default;
                 return;
             }
@@ -849,7 +844,7 @@ namespace XmlContentTranslator
         private void ToolStripMenuItem1Click(object sender, EventArgs e)
         {
             if (_change && listViewLanguageTags.Columns.Count == 3 &&
-                MessageBox.Show("Changes will be lost. Continue?", "Continue", MessageBoxButtons.YesNo) == DialogResult.No)
+                MessageBox.Show("未保存的内容即将丢失，是否继续?", "Continue", MessageBoxButtons.YesNo) == DialogResult.No)
             {
                 return;
             }
@@ -865,17 +860,17 @@ namespace XmlContentTranslator
                 return;
             }
 
-            saveFileDialog1.Title = "Save language file as...";
+            saveFileDialog1.Title = "另存为...";
             saveFileDialog1.DefaultExt = ".xml";
             saveFileDialog1.Filter = "Xml files|*.xml" + "|All files|*.*";
-            saveFileDialog1.Title = "Open language master file";
+            saveFileDialog1.Title = "打开原文";
             if (saveFileDialog1.ShowDialog() == DialogResult.OK)
             {
                 _secondLanguageFileName = saveFileDialog1.FileName;
                 FillOriginalDocumentFromSecondLanguage();
                 _originalDocument.Save(saveFileDialog1.FileName);
                 _change = false;
-                toolStripStatusLabel1.Text = "File saved as " + _secondLanguageFileName;
+                toolStripStatusLabel1.Text = "文件保存为 " + _secondLanguageFileName;
             }
         }
 
@@ -919,7 +914,7 @@ namespace XmlContentTranslator
         private void Form1FormClosing(object sender, FormClosingEventArgs e)
         {
             if (_change && listViewLanguageTags.Columns.Count == 3 &&
-                MessageBox.Show("Changes will be lost. Continue?", "Continue", MessageBoxButtons.YesNo) == DialogResult.No)
+                MessageBox.Show("未保存的内容即将丢失，是否继续?", "继续", MessageBoxButtons.YesNo) == DialogResult.No)
             {
                 e.Cancel = true;
             }

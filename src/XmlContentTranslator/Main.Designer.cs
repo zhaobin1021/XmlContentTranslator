@@ -321,13 +321,12 @@
             // 
             this.checkBox_transAttr.AutoSize = true;
             this.checkBox_transAttr.Location = new System.Drawing.Point(120, 31);
-            this.checkBox_transAttr.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.checkBox_transAttr.Margin = new System.Windows.Forms.Padding(2);
             this.checkBox_transAttr.Name = "checkBox_transAttr";
             this.checkBox_transAttr.Size = new System.Drawing.Size(72, 16);
             this.checkBox_transAttr.TabIndex = 21;
             this.checkBox_transAttr.Text = "翻译属性";
             this.checkBox_transAttr.UseVisualStyleBackColor = true;
-            this.checkBox_transAttr.Visible = false;
             // 
             // comboBox_transForm
             // 
@@ -374,7 +373,7 @@
             this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.MinimumSize = new System.Drawing.Size(819, 325);
             this.Name = "Main";
-            this.Text = "XML内容翻译";
+            this.Text = "XML翻译";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1FormClosing);
             this.Load += new System.EventHandler(this.Form1Load);
             this.ResizeEnd += new System.EventHandler(this.Main_ResizeEnd);
